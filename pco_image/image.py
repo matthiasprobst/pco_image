@@ -24,7 +24,12 @@ def get_stamp_from_pco_image(img, n_pixels: int = 14, return_raw=False) -> Tuple
     full_string = ''.join([bcdpixel_to_digits(px) for px in pixels])
     if return_raw:
         return full_string[0:8], full_string[8:]
-    return int(full_string[0:8]), datetime.strptime(full_string[8:28], "%Y%m%d%H%M%S%f")
+    try:
+        dtime = datetime.strptime(full_string[8:], "%Y%m%d%H%M%S%f")
+    except ValueError as e:
+        raise ValueError('Could not convert the timestamp to an datetime object. Reason may be that `n_pixels` is '
+                         f'too long (it is typically 14 or 16) or too small (at least 10). Orig. error: {e}')
+    return int(full_string[0:8]), dtime
 
 
 class PCOImage:
@@ -39,11 +44,12 @@ class PCOImage:
     changed, call `load_image` to reload the image.
     """
 
-    def __init__(self, filename: pathlib.Path):
+    def __init__(self, filename: pathlib.Path, n_pixels: int = 14):
         self.filename = pathlib.Path(filename)
         self._img = None
         self._idx = None
         self._dtime = None
+        self._n_pixels = n_pixels
 
     def __repr__(self):
         return f'<{self.__class__.__name__} {self.filename}>'
@@ -62,19 +68,19 @@ class PCOImage:
 
     def _extract_stamp(self) -> Tuple[int, str]:
         if self._img is None:
-            self._idx, self._dtime = get_stamp_from_pco_image(self.img)
+            self._idx, self._dtime = get_stamp_from_pco_image(self.img, n_pixels=self._n_pixels)
         return self._idx
 
     @property
     def index(self) -> int:
         """return image index"""
         if self._idx is None:
-            self._idx, self._dtime = get_stamp_from_pco_image(self.img)
+            self._idx, self._dtime = get_stamp_from_pco_image(self.img, n_pixels=self._n_pixels)
         return self._idx
 
     @property
     def timestamp(self) -> datetime:
         """return timestamp as `datetime` object"""
         if self._dtime is None:
-            self._idx, self._dtime = get_stamp_from_pco_image(self.img)
+            self._idx, self._dtime = get_stamp_from_pco_image(self.img, n_pixels=self._n_pixels)
         return self._dtime

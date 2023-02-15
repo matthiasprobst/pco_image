@@ -106,6 +106,13 @@ class PCOImage:
     def __repr__(self):
         return f'<{self.__class__.__name__} {self.filename}>'
 
+    @property
+    def img(self) -> "np.ndarray":
+        """Return img as np.ndarray"""
+        if self._img is None:
+            self._img = self.load_image()
+        return self._img
+
     @staticmethod
     def from_tiff(filename, n_pixels=14, timestamp_type='datetime') -> "PCOImage":
         """init from a .tiff image"""
@@ -135,13 +142,6 @@ class PCOImage:
             self._img = pco_reader.load(self.filename)
         elif self.stype == SourceType.tiff:
             self._img = cv2.imread(str(self.filename), cv2.IMREAD_UNCHANGED)
-        return self._img
-
-    @property
-    def img(self) -> "np.ndarray":
-        """Return img as np.ndarray"""
-        if self._img is None:
-            self._img = self.load_image()
         return self._img
 
     def write(self, filename: Union[str, pathlib.Path, None]) -> Tuple[bool, pathlib.Path]:
@@ -176,17 +176,18 @@ class PCOImage:
         data = buf[header_size:header_size + (stop * 2)]
         return np.frombuffer(data, dtype=np.dtype('<u2'))[start:stop]
 
-    def _extract_stamp(self) -> Tuple[int, str]:
-        if self._img is None:
-            self._idx, self._dtime = get_stamp_from_16pixels(self.get_sub_img(self._n_pixels),
-                                                             n_pixels=self._n_pixels,
-                                                             return_raw=self._return_raw)
-        return self._idx
+    def get_index(self, shift2bits: bool = True) -> int:
+        """return image index
 
-    def get_index(self) -> int:
-        """return image index"""
+        Parameters
+        ----------
+        shift2bits: bool=True
+            Shift the data by 2 bits in order to convert 16bit to 14 bit.
+            This is needed if original data is 14 bit was saved to 16 bit
+        """
         if self._idx is None:
-            self._idx, self._dtime = get_stamp_from_16pixels(self.get_sub_img(self._n_pixels),
+            self._idx, self._dtime = get_stamp_from_16pixels(self.get_pixels(self._n_pixels),
+                                                             shift2bits=shift2bits,
                                                              return_raw=self._return_raw)
         return self._idx
 
@@ -204,3 +205,48 @@ class PCOImage:
                                                              shift2bits=shift2bits,
                                                              return_raw=self._return_raw)
         return self._dtime
+
+
+class PCOImages:
+
+    def __init__(self, filenames: Union[str, pathlib.Path],
+                 shift2bit: bool = True,
+                 n_pixels: int = 14,
+                 timestamp_type='datetime'):
+        self.filenames = filenames
+        self.shift2bit = shift2bit
+        self._pco_images = None
+        self.n_pixels = n_pixels
+        self.timestamp_type = timestamp_type
+
+    def __getitem__(self, item):
+        return self.pco_images[item]
+
+    @property
+    def pco_images(self):
+        if self._pco_images is None:
+            self._load()
+        return self._pco_images
+
+    @staticmethod
+    def from_folder(folder: Union[str, pathlib.Path],
+                    suffix: str,
+                    shift2bit: bool = True,
+                    n_pixels: int = 14,
+                    timestamp_type: str = 'datetime') -> "PCOImages":
+        """init from a folder"""
+        return PCOImages(sorted(pathlib.Path(folder).glob(suffix)), shift2bit,
+                         n_pixels=n_pixels, timestamp_type=timestamp_type)
+
+    def _load(self):
+        self._pco_images = [PCOImage(filename,
+                                     n_pixels=self.n_pixels,
+                                     timestamp_type=self.timestamp_type,
+                                     stype=None) for filename in self.filenames]
+
+    def get_timestamps(self, pbar: bool = True):
+        if pbar:
+            from tqdm import tqdm
+            return [pco_img.get_timestamp() for pco_img in tqdm(self.pco_images)]
+        else:
+            return [pco_img.get_timestamp() for pco_img in self.pco_images]

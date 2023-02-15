@@ -6,7 +6,7 @@ import unittest
 
 import numpy as np
 
-from pco_image import PCOImage, config
+from pco_image import PCOImage, config, PCOImages
 
 logger = logging.getLogger('pco_image')
 logger.setLevel('DEBUG')
@@ -21,8 +21,12 @@ class TestPCOImage(unittest.TestCase):
 
         pco_img = PCOImage.from_tiff(__this_dir__ / 'Cam0A.tiff')
         self.assertEqual(str(pco_img.get_timestamp(False)), '2023-02-14 23:05:20.754900')
-        self.assertEqual(pco_img.get_index(), 1)
+        self.assertEqual(pco_img.get_index(False), 1)
         self.assertIsInstance(pco_img.get_index(), int)
+
+        pco_img = PCOImage.from_tiff(__this_dir__ / 'Cam0A.tiff')
+        self.assertEqual(pco_img.get_index(False), 1)
+        self.assertIsInstance(pco_img.get_index(False), int)
 
         print(pco_img.write(__this_dir__ / 'test.tiff'))
 
@@ -31,6 +35,10 @@ class TestPCOImage(unittest.TestCase):
         self.assertEqual(str(pco_img.get_timestamp(True)), '2023-01-20 18:21:53.096300')
         self.assertEqual(pco_img.get_index(), 1)
         self.assertIsInstance(pco_img.get_index(), int)
+
+    def test_pco_images(self):
+        pco_imgs = PCOImages(['Cam1_0001A.b16', 'Cam1_0001B.b16'])
+        print(pco_imgs.get_timestamps())
 
     def test_core(self):
         # pco_img = PCOImage(__this_dir__ / 'Cam1_0001A.tiff')

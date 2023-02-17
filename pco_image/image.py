@@ -1,10 +1,10 @@
 """This is basically an extension to package `pco_tools` (https://github.com/henne-s/pco-tools).
-It allows to read the image index and timestamp from the first 14 pixels. For this, write binary
-timestamp must be set in the PCO software.
+It allows to read the image index and timestamp from the first 14 pixels. For this, write "binary
+timestamp" must be set in the PCO software.
 """
 
-import logging
 import pathlib
+import struct
 from datetime import datetime
 from enum import Enum
 from typing import Tuple, Union
@@ -14,10 +14,6 @@ import numpy as np
 from pco_tools import pco_reader
 
 from . import config
-
-logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-                    datefmt='%Y-%m-%d_%H:%M:%S')
-logger = logging.getLogger('pco_image')
 
 
 class SourceType(Enum):
@@ -81,7 +77,7 @@ class PCOImage:
             Filename. Can be None. Obviously, function load() will not work.
             Thus, this is only reasonable if the file is initialized from an
             array (.from_array()).
-            If a filename is provided (str or pathlib.Path), existance is checked.
+            If a filename is provided (str or pathlib.Path), existence is checked.
         """
         self.stype = stype
         if filename is None:
@@ -106,12 +102,20 @@ class PCOImage:
     def __repr__(self):
         return f'<{self.__class__.__name__} {self.filename}>'
 
+    def __getitem__(self, item) -> "np.ndarray":
+        """Slice the image. Will be loaded if not yet done."""
+        return self.img.__getitem__(item)
+
     @property
     def img(self) -> "np.ndarray":
         """Return img as np.ndarray"""
         if self._img is None:
             self._img = self.load_image()
         return self._img
+
+    @img.setter
+    def img(self, img: np.ndarray) -> None:
+        self._img = img
 
     @staticmethod
     def from_tiff(filename, n_pixels=14, timestamp_type='datetime') -> "PCOImage":
@@ -159,17 +163,18 @@ class PCOImage:
             self._img = cv2.imread(str(self.filename), cv2.IMREAD_UNCHANGED)
             return self._img.ravel()[start:stop]
 
-        import struct
-        header_size = config.HEADER_SIZE
+        if not config.ENHANCED_READING:
+            return self.img.ravel()[start:stop]
+
+        header_size = config.B16_HEADER_SIZE
         found_header_size = False
         while not found_header_size:
             with open(self.filename, 'rb') as f:
                 buf = f.read(header_size + stop * 2)
                 actual_header_size = struct.unpack_from('<' + 'L' * 6, buf)[2]
                 if actual_header_size != header_size:
-                    logger.debug(f'Updating header size to {actual_header_size}')
                     header_size = actual_header_size
-                    config.HEADER_SIZE = actual_header_size
+                    config.B16_HEADER_SIZE = actual_header_size
                 else:
                     found_header_size = True
 
@@ -205,48 +210,3 @@ class PCOImage:
                                                              shift2bits=shift2bits,
                                                              return_raw=self._return_raw)
         return self._dtime
-
-
-class PCOImages:
-
-    def __init__(self, filenames: Union[str, pathlib.Path],
-                 shift2bit: bool = True,
-                 n_pixels: int = 14,
-                 timestamp_type='datetime'):
-        self.filenames = filenames
-        self.shift2bit = shift2bit
-        self._pco_images = None
-        self.n_pixels = n_pixels
-        self.timestamp_type = timestamp_type
-
-    def __getitem__(self, item):
-        return self.pco_images[item]
-
-    @property
-    def pco_images(self):
-        if self._pco_images is None:
-            self._load()
-        return self._pco_images
-
-    @staticmethod
-    def from_folder(folder: Union[str, pathlib.Path],
-                    suffix: str,
-                    shift2bit: bool = True,
-                    n_pixels: int = 14,
-                    timestamp_type: str = 'datetime') -> "PCOImages":
-        """init from a folder"""
-        return PCOImages(sorted(pathlib.Path(folder).glob(suffix)), shift2bit,
-                         n_pixels=n_pixels, timestamp_type=timestamp_type)
-
-    def _load(self):
-        self._pco_images = [PCOImage(filename,
-                                     n_pixels=self.n_pixels,
-                                     timestamp_type=self.timestamp_type,
-                                     stype=None) for filename in self.filenames]
-
-    def get_timestamps(self, pbar: bool = True):
-        if pbar:
-            from tqdm import tqdm
-            return [pco_img.get_timestamp() for pco_img in tqdm(self.pco_images)]
-        else:
-            return [pco_img.get_timestamp() for pco_img in self.pco_images]

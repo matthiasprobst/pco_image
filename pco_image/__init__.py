@@ -1,4 +1,4 @@
-from .image import PCOImage, PCOImages
+from .image import PCOImage
 
 __version__ = '0.2.0'
 

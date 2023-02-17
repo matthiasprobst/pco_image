@@ -5,12 +5,15 @@ import unittest
 
 import numpy as np
 
-from pco_image import PCOImage, config
+from pco_image import PCOImage, config, __version__
 
 __this_dir__ = pathlib.Path(__file__).parent
 
 
 class TestPCOImage(unittest.TestCase):
+
+    def test_version(self):
+        self.assertEqual(__version__, '0.3.0')
 
     def test_tiff(self):
         pco_img = PCOImage.from_tiff(__this_dir__ / 'Cam1_1A_noshift.tiff')

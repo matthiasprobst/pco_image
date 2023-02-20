@@ -7,7 +7,7 @@ import pathlib
 import struct
 from datetime import datetime
 from enum import Enum
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 
 import cv2
 import numpy as np
@@ -210,3 +210,11 @@ class PCOImage:
                                                              shift2bits=shift2bits,
                                                              return_raw=self._return_raw)
         return self._dtime
+
+
+def get_timesteps(filenames: List[Union[str, pathlib.Path]], shift2bits: bool = True) -> List:
+    """get timestep from multiple files"""
+    ts = []
+    for filename in filenames:
+        ts.append(PCOImage(filename).get_timestamp(shift2bits=shift2bits))
+    return ts

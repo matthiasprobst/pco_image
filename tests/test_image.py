@@ -81,3 +81,15 @@ class TestPCOImage(unittest.TestCase):
         pco_img = PCOImage(__this_dir__ / 'Cam0B.tiff')
         with self.assertRaises(ValueError):
             pco_img.get_timestamp()
+
+    def test_multiple_timesteps(self):
+        import shutil
+        multiple_dir = pathlib.Path(__this_dir__ / 'multiple')
+        multiple_dir.mkdir(exist_ok=True)
+        for i in range(5000):
+            shutil.copy('Cam1_0001A.b16', multiple_dir / f'cam{i:04d}.b16')
+
+        filenames = sorted(multiple_dir.glob('*.b16'))
+        from pco_image.image import get_timesteps
+        ts = get_timesteps(filenames)
+        print(ts)

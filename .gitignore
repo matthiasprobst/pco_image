@@ -129,3 +129,5 @@ dmypy.json
 .pyre/
 *.iml
 *.xml
+*.ini
+*.b16

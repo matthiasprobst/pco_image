@@ -15,6 +15,11 @@ class TestPCOImage(unittest.TestCase):
     def test_version(self):
         self.assertEqual(__version__, '0.3.0')
 
+    def test_from_numpy(self):
+        pco_img = PCOImage.from_array(np.zeros((100, 100), dtype=np.uint16))
+        self.assertIsInstance(pco_img, PCOImage)
+        np.testing.assert_array_equal(pco_img.img, np.zeros((100, 100), dtype=np.uint16))
+
     def test_tiff(self):
         pco_img = PCOImage.from_tiff(__this_dir__ / 'Cam1_1A_noshift.tiff')
         self.assertEqual(str(pco_img.get_timestamp(True)), '2023-02-15 08:52:01.122900')

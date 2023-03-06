@@ -78,6 +78,22 @@ class PCOImage:
             Thus, this is only reasonable if the file is initialized from an
             array (.from_array()).
             If a filename is provided (str or pathlib.Path), existence is checked.
+        n_pixels: int=14
+            Number of pixels to read from the image to get the timestamp and
+            image index. This is typically 14 for tested PCO cameras.
+        timestamp_type: str='datetime'
+            Type of the timestamp. Can be 'datetime' or 'str'. If 'datetime',
+            the timestamp is returned as a datetime object. If 'str', the
+            timestamp is returned as a string.
+        stype: SourceType=None
+            Type of the image file. If None, the type is inferred from the
+            filename suffix. If not None, the type is set to this value.
+
+        Returns
+        -------
+        PCOImage
+            The PCOImage object.
+
         """
         self.stype = stype
         if filename is None:
@@ -151,6 +167,7 @@ class PCOImage:
 
     @img.setter
     def img(self, img: np.ndarray) -> None:
+        """Set the image."""
         self._img = img
 
     @staticmethod
@@ -165,7 +182,31 @@ class PCOImage:
 
     @staticmethod
     def from_array(array: np.ndarray, n_pixels=14, timestamp_type='datetime') -> "PCOImage":
-        """init from a numpy array"""
+        """init from a numpy array
+
+        Parameters
+        ----------
+        array: np.ndarray
+            The array to initialize the image from.
+        n_pixels: int=14
+            Number of pixels to read from the image to get the timestamp and
+            image index. This is typically 14 for tested PCO cameras.
+        timestamp_type: str='datetime'
+            Type of the timestamp. Can be 'datetime' or 'str'. If 'datetime',
+            the timestamp is returned as a datetime object. If 'str', the
+            timestamp is returned as a string.
+
+        Returns
+        -------
+        PCOImage
+            The PCOImage object.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from pco_image import PCOImage
+        >>> img = PCOImage.from_array(np.zeros((100, 100), dtype=np.uint16))
+        """
         pco_img = PCOImage(None, n_pixels=n_pixels, timestamp_type=timestamp_type, stype=SourceType.b16)
         pco_img._img = array
         return pco_img
@@ -249,7 +290,7 @@ class PCOImage:
 
 
 def get_timesteps(filenames: List[Union[str, pathlib.Path]], shift2bits: bool = True) -> List:
-    """get timestep from multiple files"""
+    """get timestep from multiple files and return as list"""
     ts = []
     for filename in filenames:
         ts.append(PCOImage(filename).get_timestamp(shift2bits=shift2bits))

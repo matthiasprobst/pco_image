@@ -106,6 +106,42 @@ class PCOImage:
         """Slice the image. Will be loaded if not yet done."""
         return self.img.__getitem__(item)
 
+    def __sub__(self, other):
+        img = PCOImage(None, n_pixels=self._n_pixels, timestamp_type=self.timestamp_type)
+        if isinstance(other, (int, float)):
+            img._img = self.img - other
+        else:
+            img._img = self.img - other.img
+        return img
+
+    def __add__(self, other):
+        img = PCOImage(None, n_pixels=self._n_pixels, timestamp_type=self.timestamp_type)
+        if isinstance(other, (int, float)):
+            img._img = self.img + other
+        else:
+            img._img = self.img + other.img
+        return img
+
+    def __mul__(self, other):
+        """Multiply two images or multiply by a number"""
+        img = PCOImage(None, n_pixels=self._n_pixels, timestamp_type=self.timestamp_type)
+        # check if "other" is a number:
+        if isinstance(other, (int, float)):
+            img._img = self.img * other
+        else:
+            img._img = self.img * other.img
+        return img
+
+    def __truediv__(self, other):
+        """Divide two images or divide by a number"""
+        img = PCOImage(None, n_pixels=self._n_pixels, timestamp_type=self.timestamp_type)
+        # check if "other" is a number:
+        if isinstance(other, (int, float)):
+            img._img = self.img / other
+        else:
+            img._img = self.img / other.img
+        return img
+
     @property
     def img(self) -> "np.ndarray":
         """Return img as np.ndarray"""

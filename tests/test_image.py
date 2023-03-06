@@ -107,6 +107,14 @@ class TestPCOImage(unittest.TestCase):
         # save as tiff file:
         add_img.write(__this_dir__ / 'out.tiff')
         self.assertTrue((__this_dir__ / 'out.tiff').exists())
+
+        # load from tiff file:
+        pco_img_loaded = PCOImage.from_tiff(__this_dir__ / 'out.tiff')
+        self.assertIsInstance(pco_img_loaded, PCOImage)
+        self.assertIsInstance(pco_img_loaded.img, np.ndarray)
+        np.testing.assert_array_equal(add_img.img, 0 * pco_img.img)
+
+        # remove tiff file:
         (__this_dir__ / 'out.tiff').unlink()
 
         # subtract number:

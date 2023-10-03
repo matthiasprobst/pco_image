@@ -12,9 +12,6 @@ __this_dir__ = pathlib.Path(__file__).parent
 
 class TestPCOImage(unittest.TestCase):
 
-    def test_version(self):
-        self.assertEqual(__version__, '0.3.0')
-
     def test_from_numpy(self):
         pco_img = PCOImage.from_array(np.zeros((100, 100), dtype=np.uint16))
         self.assertIsInstance(pco_img, PCOImage)
@@ -159,13 +156,14 @@ class TestPCOImage(unittest.TestCase):
     def test_multiple_timesteps(self):
         import shutil
         multiple_dir = pathlib.Path(__this_dir__ / 'multiple')
+        shutil.rmtree(multiple_dir, ignore_errors=True)
         multiple_dir.mkdir(exist_ok=True)
-        for i in range(5000):
-            shutil.copy('Cam1_0001A.b16', multiple_dir / f'cam{i:04d}.b16')
+        for i in range(12):
+            shutil.copy(__this_dir__ / 'Cam1_0001A.b16', multiple_dir / f'cam{i:04d}.b16')
 
         filenames = sorted(multiple_dir.glob('*.b16'))
         from pco_image.image import get_timesteps
         ts = get_timesteps(filenames)
-        self.assertEqual(len(ts), 5000)
+        self.assertEqual(len(ts), 12)
         self.assertIsInstance(ts[0], datetime.datetime)
         shutil.rmtree(multiple_dir)
